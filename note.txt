@@ -1,0 +1,4 @@
+Per la variabile {{ oggetto_esteso_fornitura_servizio}} :
+[inserire eventualmente ulteriori caratteristiche: tempi di consegna, durata della garanzia, programma di addestramento all’uso e manutenzione ordinaria, …] 
+
+All'interno del valore dell'affidamento solo per i sevizi non intelletuali vale le papparderdelle del oneri legati alla sicurezza e il discorso CCLN e ATECO 
