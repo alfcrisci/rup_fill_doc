@@ -1,7 +1,7 @@
 from docxtpl import DocxTemplate
 
 
-doc = DocxTemplate('A_preventivo/AD_infra_40k_RichiestaOfferta.docx')
+doc = DocxTemplate('AA_PREPDOC/AD_infra_40k_RichiestaOfferta.docx')
 context = {'numero_CUP': '38900',
            'servizio_fornitura' : 'servizio',
            'prestazione_servizio_fornitura' : 'Prestazione di servizio',
