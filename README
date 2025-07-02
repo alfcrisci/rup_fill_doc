@@ -1,1 +1,27 @@
+## Lancio
 
+### python main.py
+
+## Stato di progetto:
+
+il concept è avere a bordo un file excel in una directory dove sarà residente un programma python o un compilato.
+Avra due directory statiche
+
+- images per il logo
+- template_doc dove ci sono i templates organizzati in sotto-directories che seguono il flusso della procedura amministrativa.
+ - altre dinamiche dove saranno contenuti i file generati
+
+    i nomi di queste potrebbero essere:  richiedente_anno_progetto_IDprog
+
+### Aggiunta barra del logo, titolo e crediti e dovrebbe esserci anche un app icon.
+
+
+
+
+
+### to do:
+
+filtrare le variabili da due fogli excel che è un template excel presente. 
+
+dati_generali_procedura : per il riempimento guidato dei fogli della procedura 
+generazioni due per la generazione delle richieste di offerte 
