@@ -4,8 +4,7 @@
 
 ## Stato di progetto:
 
-il concept è avere a bordo un file excel in una directory dove sarà residente un programma python o un compilato.
-Avra due directory statiche
+Due directory statiche
 
 - images per il logo
 - template_doc dove ci sono i templates organizzati in sotto-directories che seguono il flusso della procedura amministrativa.
