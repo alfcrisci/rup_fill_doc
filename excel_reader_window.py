@@ -18,7 +18,7 @@ class ExcelReaderWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("RUP IBE helper - Document Generator")
-        self.setGeometry(100, 100, 1200, 850)
+        self.setGeometry(100, 100, 1300, 800)
         
         # Set application icon (replace with your icon if needed)
         self.setWindowIcon(QIcon(":/images/app_icon.png"))
@@ -210,13 +210,14 @@ class ExcelReaderWindow(QMainWindow):
         
         # List for generazioni_offerte
         self.generazioni_offerte_list = QListWidget()
+        self.generazioni_offerte_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
         self.generazioni_offerte_list.itemDoubleClicked.connect(
             lambda item: self.show_variable_value(item, 'generazioni_offerte'))
         self.generazioni_offerte_list.setMinimumWidth(300)
         
         # Add lists to splitter
-        self.splitter.addWidget(self.create_list_group(self.dati_generali_list, "Dati Generali Procedura"))
-        self.splitter.addWidget(self.create_list_group(self.generazioni_offerte_list, "Generazioni Offerte"))
+        self.splitter.addWidget(self.create_list_group(self.dati_generali_list, "Dati Procedura"))
+        self.splitter.addWidget(self.create_list_group(self.generazioni_offerte_list, "Generazioni Richeste Offerte - Selezione multipla con click"))
         
         # Set initial sizes and stretch factors
         self.splitter.setSizes([400, 400])
@@ -289,6 +290,10 @@ class ExcelReaderWindow(QMainWindow):
             QListWidget::item {
                 padding: 3px;
             }
+            QListWidget::item:selected {
+                background-color: #d4e6f1;
+                color: #2c3e50;
+            }
         """)
         
         layout.addWidget(list_widget)
@@ -324,103 +329,102 @@ class ExcelReaderWindow(QMainWindow):
                 'generazioni_offerte': None
             }
             
-            # Read specified sheets
-            for sheet_name in self.sheet_data.keys():
-                try:
-                    sheet = workbook[sheet_name]
-                    self.sheet_data[sheet_name] = sheet
-                    
-                    # Get the appropriate list widget
-                    target_list = (self.dati_generali_list if sheet_name == 'dati_generali_procedura' 
-                                 else self.generazioni_offerte_list)
-                    
-                    # Special processing for dati_generali_procedura sheet
-                    if sheet_name == 'dati_generali_procedura':
-                        # Process column C with names from column E, starting from row 2
-                        for row_idx, row in enumerate(sheet.iter_rows(min_row=2, min_col=3, max_col=5, values_only=False), start=2):
-                            cell_c = row[0]  # Column C
-                            cell_e = row[2]  # Column E
-                            
-                            # Skip if column C or E is empty or contains only whitespace
-                            if (cell_c.value is None or not str(cell_c.value).strip() or 
-                                cell_e.value is None or not str(cell_e.value).strip()):
-                                continue
-                                
-                            # Get name from column E
-                            name = str(cell_e.value)
-                            item_text = f"{name}: {cell_c.value}"
-                            
-                            item = QListWidgetItem(item_text)
-                            item.setData(Qt.ItemDataRole.UserRole, {
-                                'type': 'value',
-                                'coord': cell_c.coordinate,
-                                'name': name,
-                                'value': cell_c.value
-                            })
-                            target_list.addItem(item)
-                        
-                        # Process column D with flag names, starting from row 2
-                        for row_idx, row in enumerate(sheet.iter_rows(min_row=2, min_col=4, max_col=4, values_only=False), start=2):
-                            cell_d = row[0]  # Column D
-                            
-                            if cell_d.value is not None and str(cell_d.value).strip():
-                                flag_name = f"flag_{row_idx}"
-                                item_text = f"{flag_name}: {cell_d.value}"
-                                
-                                item = QListWidgetItem(item_text)
-                                item.setData(Qt.ItemDataRole.UserRole, {
-                                    'type': 'flag',
-                                    'coord': cell_d.coordinate,
-                                    'name': flag_name,
-                                    'value': cell_d.value
-                                })
-                                target_list.addItem(item)
-                    
-                    else:
-                        # Normal processing for other sheets
-                        for row in sheet.iter_rows():
-                            for cell in row:
-                                if cell.value is not None and isinstance(cell.value, str) and cell.value.strip():
-                                    item = QListWidgetItem(f"{cell.coordinate}: {cell.value}")
-                                    item.setData(Qt.ItemDataRole.UserRole, {
-                                        'type': 'standard',
-                                        'coord': cell.coordinate,
-                                        'value': cell.value
-                                    })
-                                    target_list.addItem(item)
-                        
-                        # Pre-fill QLineEdit fields from generazioni_offerte sheet
-                        self.prefill_from_generazioni_offerte(sheet)
+            # Read dati_generali_procedura sheet (manteniamo la logica originale)
+            if 'dati_generali_procedura' in workbook.sheetnames:
+                sheet = workbook['dati_generali_procedura']
+                self.sheet_data['dati_generali_procedura'] = sheet
                 
-                    self.results_display.append(f"Trovate {target_list.count()} variabili nel foglio {sheet_name}")
+                # Mappatura tra nomi delle colonne Excel e campi QLineEdit
+                field_mapping = {
+                    'numero_CUP': None,
+                    'servizio_fornitura': None,
+                    'acronimo_progetto': None,
+                    'oggetto_fornitura_servizio': None,
+                    'oggetto_esteso_fornitura_servizio': None,
+                    'nome_cognome_richiedente': None,
+                    'mail_contatto_richiedente': None
+                }
                 
-                except KeyError:
-                    QMessageBox.warning(self, "Attenzione", f"Il foglio '{sheet_name}' non esiste nel file.")
-                    continue
+                # Process column C with names from column E, starting from row 2
+                for row_idx, row in enumerate(sheet.iter_rows(min_row=2, min_col=3, max_col=5, values_only=False), start=2):
+                    cell_c = row[0]  # Column C
+                    cell_e = row[2]  # Column E
+                    
+                    if (cell_c.value is None or not str(cell_c.value).strip() or 
+                        cell_e.value is None or not str(cell_e.value).strip()):
+                        continue
+                        
+                    name = str(cell_e.value)
+                    item_text = f"{name}: {cell_c.value}"
+                    
+                    # Controlla se questo valore corrisponde a uno dei nostri campi
+                    for field_name in field_mapping.keys():
+                        if field_name.lower() in name.lower():
+                            field_mapping[field_name] = str(cell_c.value) if cell_c.value else ""
+                    
+                    item = QListWidgetItem(item_text)
+                    item.setData(Qt.ItemDataRole.UserRole, {
+                        'type': 'value',
+                        'coord': cell_c.coordinate,
+                        'name': name,
+                        'value': cell_c.value
+                    })
+                    self.dati_generali_list.addItem(item)
+                
+                # Process column D with flag names, starting from row 2
+                for row_idx, row in enumerate(sheet.iter_rows(min_row=2, min_col=4, max_col=4, values_only=False), start=2):
+                    cell_d = row[0]  # Column D
+                    
+                    if cell_d.value is not None and str(cell_d.value).strip():
+                        flag_name = f"flag_{row_idx}"
+                        item_text = f"{flag_name}: {cell_d.value}"
+                        
+                        item = QListWidgetItem(item_text)
+                        item.setData(Qt.ItemDataRole.UserRole, {
+                            'type': 'flag',
+                            'coord': cell_d.coordinate,
+                            'name': flag_name,
+                            'value': cell_d.value
+                        })
+                        self.dati_generali_list.addItem(item)
+                
+                # Riempimento automatico dei campi QLineEdit
+                for field_name, value in field_mapping.items():
+                    if value is not None and field_name in self.doc_fields:
+                        self.doc_fields[field_name].setText(value)
+            
+            # Read generazioni_offerte sheet come tabella (prima riga = nomi colonne)
+            if 'generazioni_offerte' in workbook.sheetnames:
+                sheet = workbook['generazioni_offerte']
+                self.sheet_data['generazioni_offerte'] = sheet
+                
+                # Leggi la prima riga come nomi delle colonne
+                headers = []
+                for cell in sheet[1]:
+                    header_name = str(cell.value) if cell.value else f"col_{cell.column_letter}"
+                    headers.append(header_name)
+                
+                # Leggi i dati per ogni riga successiva
+                for row_idx, row in enumerate(sheet.iter_rows(min_row=2), start=2):
+                    row_data = {}
+                    for col_idx, cell in enumerate(row, start=1):
+                        if col_idx - 1 < len(headers):
+                            row_data[headers[col_idx - 1]] = cell.value
+                    
+                    # Aggiungi alla lista come voce unica per la riga
+                    item_text = f" {', '.join(f' {v}' for k, v in row_data.items() if v)}"
+                    item = QListWidgetItem(item_text)
+                    item.setData(Qt.ItemDataRole.UserRole, {
+                        'type': 'row',
+                        'row_idx': row_idx-1,
+                        'data': row_data
+                    })
+                    self.generazioni_offerte_list.addItem(item)
             
             workbook.close()
             
         except Exception as e:
             QMessageBox.critical(self, "Errore", f"Errore nella lettura del file Excel:\n{str(e)}")
-
-    def prefill_from_generazioni_offerte(self, sheet):
-        """Prefill QLineEdit fields from generazioni_offerte sheet"""
-        # Define mapping between cell coordinates and field names
-        field_mapping = {
-            'B2': 'oggetto_fornitura_servizio',
-            'B3': 'nome_ditta',
-            'B4': 'indirizzo_ditta',
-            'B5': 'cap_ditta',
-            'B6': 'pec_ditta'
-        }
-        
-        for coord, field_name in field_mapping.items():
-            try:
-                cell = sheet[coord]
-                if cell.value is not None:
-                    self.doc_fields[field_name].setText(str(cell.value))
-            except:
-                continue
 
     def show_variable_value(self, item, sheet_name):
         if not self.current_file or sheet_name not in self.sheet_data or not self.sheet_data[sheet_name]:
@@ -429,37 +433,35 @@ class ExcelReaderWindow(QMainWindow):
         item_data = item.data(Qt.ItemDataRole.UserRole)
         
         try:
-            sheet = self.sheet_data[sheet_name]
-            
-            if item_data['type'] == 'value':
+            if sheet_name == 'generazioni_offerte' and item_data['type'] == 'row':
+                # Mostra tutti i dati della riga
+                row_data = item_data['data']
+                details = "\n".join([f"• {k}: {v} ({type(v).__name__})" for k, v in row_data.items()])
                 self.results_display.append(
-                    f"\nDettaglio variabile (valore):\n"
-                    f"• Nome: {item_data['name']}\n"
-                    f"• Posizione: {item_data['coord']}\n"
-                    f"• Valore: {item_data['value']}\n"
-                    f"• Tipo: {type(item_data['value']).__name__}\n"
-                    f"----------------------------")
-            
-            elif item_data['type'] == 'flag':
-                self.results_display.append(
-                    f"\nDettaglio flag:\n"
-                    f"• Nome: {item_data['name']}\n"
-                    f"• Posizione: {item_data['coord']}\n"
-                    f"• Valore: {item_data['value']}\n"
-                    f"• Tipo: {type(item_data['value']).__name__}\n"
+                    f"\nDettaglio riga {item_data['row_idx']}:\n"
+                    f"{details}\n"
                     f"----------------------------")
             else:
-                # Normal processing for other sheets
-                cell_ref = item_data['coord']
-                cell = sheet[cell_ref]
+                # Mostra dettagli per dati_generali_procedura o celle singole
+                sheet = self.sheet_data[sheet_name]
                 
-                self.results_display.append(
-                    f"\nDettaglio variabile:\n"
-                    f"• Foglio: {sheet_name}\n"
-                    f"• Posizione: {cell_ref}\n"
-                    f"• Valore: {cell.value}\n"
-                    f"• Tipo: {type(cell.value).__name__}\n"
-                    f"----------------------------")
+                if item_data['type'] == 'value':
+                    self.results_display.append(
+                        f"\nDettaglio variabile (valore):\n"
+                        f"• Nome: {item_data['name']}\n"
+                        f"• Posizione: {item_data['coord']}\n"
+                        f"• Valore: {item_data['value']}\n"
+                        f"• Tipo: {type(item_data['value']).__name__}\n"
+                        f"----------------------------")
+                
+                elif item_data['type'] == 'flag':
+                    self.results_display.append(
+                        f"\nDettaglio flag:\n"
+                        f"• Nome: {item_data['name']}\n"
+                        f"• Posizione: {item_data['coord']}\n"
+                        f"• Valore: {item_data['value']}\n"
+                        f"• Tipo: {type(item_data['value']).__name__}\n"
+                        f"----------------------------")
                 
         except Exception as e:
             QMessageBox.critical(self, "Errore", f"Errore nella lettura della cella:\n{str(e)}")
@@ -499,10 +501,11 @@ class ExcelReaderWindow(QMainWindow):
             'numero_CUP': QLineEdit(),
             'servizio_fornitura': QLineEdit(),
             'prestazione_servizio_fornitura': QLineEdit(),
-            'nome_cognome': QLineEdit(),
-            'mail_contatto': QLineEdit(),
+            'nome_cognome_richiedente': QLineEdit(),
+            'mail_contatto_richiedente': QLineEdit(),
             'acronimo_progetto': QLineEdit(),
             'oggetto_fornitura_servizio': QLineEdit(),
+            'oggetto_esteso_fornitura_servizio': QLineEdit(),
             'nome_ditta': QLineEdit(),
             'indirizzo_ditta': QLineEdit(),
             'cap_ditta': QLineEdit(),
@@ -511,11 +514,25 @@ class ExcelReaderWindow(QMainWindow):
         
         # Add only relevant fields based on sheet type
         if sheet_type == 'dati_generali_procedura':
-            fields_to_show = ['numero_CUP', 'servizio_fornitura', 'prestazione_servizio_fornitura', 
-                             'nome_cognome', 'mail_contatto', 'acronimo_progetto']
+            fields_to_show = [ 
+                'servizio_fornitura', 
+                'acronimo_progetto',
+                'numero_CUP',
+                'oggetto_fornitura_servizio',
+                'oggetto_esteso_fornitura_servizio',                                
+                'nome_cognome_richiedente', 
+                'mail_contatto_richiedente'
+            ]
         else:
-            fields_to_show = ['oggetto_fornitura_servizio', 'nome_ditta', 'indirizzo_ditta', 
-                            'cap_ditta', 'pec_ditta']
+            fields_to_show = [ 
+                'servizio_fornitura', 
+                'acronimo_progetto',
+                'numero_CUP',
+                'oggetto_fornitura_servizio',
+                'oggetto_esteso_fornitura_servizio',                                
+                'nome_cognome_richiedente', 
+                'mail_contatto_richiedente'
+            ]
         
         for field_name in fields_to_show:
             label = field_name.replace('_', ' ').title() + ":"
@@ -587,15 +604,16 @@ class ExcelReaderWindow(QMainWindow):
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
             
-            # Prepare context
+            # Prepare base context (dati_generali + form fields)
             context = {
                 'numero_CUP': self.doc_fields['numero_CUP'].text(),
                 'servizio_fornitura': self.doc_fields['servizio_fornitura'].text(),
                 'prestazione_servizio_fornitura': self.doc_fields['prestazione_servizio_fornitura'].text(),
-                'nome_cognome': self.doc_fields['nome_cognome'].text(),
-                'mail_contatto': self.doc_fields['mail_contatto'].text(),
+                'nome_cognome_richiedente': self.doc_fields['nome_cognome_richiedente'].text(),
+                'mail_contatto_richiedente': self.doc_fields['mail_contatto_richiedente'].text(),
                 'acronimo_progetto': self.doc_fields['acronimo_progetto'].text(),
                 'oggetto_fornitura_servizio': self.doc_fields['oggetto_fornitura_servizio'].text(),
+                'oggetto_esteso_fornitura_servizio': self.doc_fields['oggetto_esteso_fornitura_servizio'].text(),
                 'nome_ditta': self.doc_fields['nome_ditta'].text(),
                 'indirizzo_ditta': self.doc_fields['indirizzo_ditta'].text(),
                 'cap_ditta': self.doc_fields['cap_ditta'].text(),
@@ -603,56 +621,88 @@ class ExcelReaderWindow(QMainWindow):
                 'data_corrente': datetime.now().strftime('%d/%m/%Y')
             }
             
-            # Add data from the selected sheet
-            if source_sheet == 'dati_generali_procedura':
-                # Add values and flags from the list
-                for i in range(self.dati_generali_list.count()):
-                    item = self.dati_generali_list.item(i)
-                    item_data = item.data(Qt.ItemDataRole.UserRole)
-                    context[item_data['name']] = item_data['value']
-            else:
-                # Add data from generazioni_offerte sheet
-                for i in range(self.generazioni_offerte_list.count()):
-                    item = self.generazioni_offerte_list.item(i)
-                    item_data = item.data(Qt.ItemDataRole.UserRole)
-                    if isinstance(item_data, dict):
-                        context[item_data['name']] = item_data['value']
-                    else:
-                        sheet = self.sheet_data[source_sheet]
-                        cell = sheet[item_data]
-                        context[f"{source_sheet}_{item_data}"] = cell.value
+            # Add data from dati_generali_procedura sheet
+            for i in range(self.dati_generali_list.count()):
+                item = self.dati_generali_list.item(i)
+                item_data = item.data(Qt.ItemDataRole.UserRole)
+                context[item_data['name']] = item_data['value']
             
-            # Generate documents for each template
-            generated_files = []
-            for template_path in template_paths:
-                try:
-                    # Generate filename
-                    cognome = context['nome_cognome'].split()[-1] if context['nome_cognome'] else 'documento'
-                    template_name = os.path.splitext(os.path.basename(template_path))[0]
-                    source_suffix = "DatiGenerali" if source_sheet == 'dati_generali_procedura' else "Offerte"
-                    output_filename = f"RichiestaOfferta_{cognome}_{source_suffix}_{template_name}.docx"
-                    output_path = os.path.join(output_dir, output_filename)
-                    
-                    # Render and save document
-                    doc = DocxTemplate(template_path)
-                    doc.render(context)
-                    doc.save(output_path)
-                    generated_files.append(output_path)
-                    
-                except Exception as e:
-                    QMessageBox.warning(
-                        self, 
-                        "Attenzione", 
-                        f"Errore durante la generazione del documento {template_path}:\n{str(e)}"
-                    )
-                    continue
-            
-            if generated_files:
-                success_message = "Documenti generati con successo:\n\n" + "\n".join(generated_files)
-                QMessageBox.information(self, "Successo", success_message)
-            else:
-                QMessageBox.warning(self, "Attenzione", "Nessun documento è stato generato.")
+            # Special processing for generazioni_offerte sheet
+            if source_sheet == 'generazioni_offerte':
+                # Genera un documento per ogni riga selezionata
+                selected_items = self.generazioni_offerte_list.selectedItems()
+                if not selected_items:
+                    QMessageBox.warning(self, "Attenzione", "Seleziona almeno una riga dal foglio generazioni_offerte.")
+                    return
                 
+                generated_files = []
+                for item in selected_items:
+                    item_data = item.data(Qt.ItemDataRole.UserRole)
+                    row_context = context.copy()
+                    row_context.update(item_data['data'])
+                    
+                    # Generate documents for each template
+                    for template_path in template_paths:
+                        try:
+                            # Generate filename
+                            cognome = row_context['nome_cognome_richiedente'].split()[-1] if row_context['nome_cognome_richiedente'] else 'documento'
+                            progetto = row_context['acronimo_progetto']
+                            template_name = os.path.splitext(os.path.basename(template_path))[0]
+                            output_filename = f"Richiesta_Offerta_{cognome}_{progetto}_ditta_{item_data['row_idx']}.docx"
+                            output_path = os.path.join(output_dir, output_filename)
+                            
+                            # Render and save document
+                            doc = DocxTemplate(template_path)
+                            doc.render(row_context)
+                            doc.save(output_path)
+                            generated_files.append(output_path)
+                            
+                        except Exception as e:
+                            QMessageBox.warning(
+                                self, 
+                                "Attenzione", 
+                                f"Errore durante la generazione del documento {template_path}:\n{str(e)}"
+                            )
+                            continue
+                
+                if generated_files:
+                    success_message = "Documenti generati con successo:\n\n" + "\n".join(generated_files)
+                    QMessageBox.information(self, "Successo", success_message)
+                else:
+                    QMessageBox.warning(self, "Attenzione", "Nessun documento è stato generato.")
+            
+            else:
+                # Original processing for dati_generali_procedura
+                generated_files = []
+                for template_path in template_paths:
+                    try:
+                        # Generate filename
+                        cognome = context['nome_cognome_richiedente'].split()[-1] if context['nome_cognome_richiedente'] else 'documento'
+                        progetto = context['acronimo_progetto']
+                        template_name = os.path.splitext(os.path.basename(template_path))[0]
+                        output_filename = f"{template_name}_{cognome}_{progetto}.docx"
+                        output_path = os.path.join(output_dir, output_filename)
+                        
+                        # Render and save document
+                        doc = DocxTemplate(template_path)
+                        doc.render(context)
+                        doc.save(output_path)
+                        generated_files.append(output_path)
+                        
+                    except Exception as e:
+                        QMessageBox.warning(
+                            self, 
+                            "Attenzione", 
+                            f"Errore durante la generazione del documento {template_path}:\n{str(e)}"
+                        )
+                        continue
+                
+                if generated_files:
+                    success_message = "Documenti generati con successo:\n\n" + "\n".join(generated_files)
+                    QMessageBox.information(self, "Successo", success_message)
+                else:
+                    QMessageBox.warning(self, "Attenzione", "Nessun documento è stato generato.")
+                    
         except Exception as e:
             QMessageBox.critical(
                 self, 
