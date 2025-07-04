@@ -1,16 +1,26 @@
 ## Lancio
 
+Il software è un progetto Qt che seve per riempire dei dcoumenti docx template validati dall'amministrazione.
+L'operazione di verifica dei template è parziale ma l'utilizzo di una libreria che usa una sintassi di interpolazione testuale {{ variabile_testo}}  o immagine  {{ variabile_immagine}}.
+I template sono quelli in uso per la procedura flusso per acquisti sotto i 40 keuro per fornitura e servizi di IBE CNR.
+
+Il software avrà un deploy come eseguibile compilato e distribuito come zip scaricabile. Sarà cura di chi lo usa di verificare la correttezza e la personalizzazione dei templates.
+Ora in fase di debug si lancia con un bat file o da lina di comando una volta scaricato lo zip con dentro programma 
+
+### pip install -r /path/to/requirements.txt ( per il non compilato).
 ### python main.py
+
+### rup_filler.exe ( compilato) da fare
 
 ## Stato di progetto:
 
-Due directory statiche
+Nello zip ci sono due directory statiche raggiungibile da programma
 
 - images per il logo
 - template_doc dove ci sono i templates organizzati in sotto-directories che seguono il flusso della procedura amministrativa.
  - altre dinamiche dove saranno contenuti i file generati
 
-    i nomi di queste potrebbero essere:  richiedente_anno_progetto_IDprog
+    i nomi di queste potrebbero essere:  richiedente_anno_progetto_Nprog
 
 ### Aggiunta barra del logo, titolo e crediti e dovrebbe esserci anche un app icon.
 
