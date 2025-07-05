@@ -329,7 +329,7 @@ class ExcelReaderWindow(QMainWindow):
                 'generazioni_offerte': None
             }
             
-            # Read dati_generali_procedura sheet (manteniamo la logica originale)
+            # Read dati_generali_procedura sheet
             if 'dati_generali_procedura' in workbook.sheetnames:
                 sheet = workbook['dati_generali_procedura']
                 self.sheet_data['dati_generali_procedura'] = sheet
@@ -342,7 +342,75 @@ class ExcelReaderWindow(QMainWindow):
                     'oggetto_fornitura_servizio': None,
                     'oggetto_esteso_fornitura_servizio': None,
                     'nome_cognome_richiedente': None,
-                    'mail_contatto_richiedente': None
+                    'mail_contatto_richiedente': None,
+                    'data_oggi': None,
+                    'data_rda': None,
+                    'data_scadenza': None,
+                    'descrizione_servizio_fornitura': None,
+                    'breve_descrizione_caratteristiche_prestazioni_acquisizione_bene_servizio': None,
+                    'breve_descrizione_motivazione_acquisizione_bene_servizio': None,
+                    'clausola_cam': None,
+                    'clausola_servizi_fornitura': None,
+                    'dichiarazione_deroga_MEPA': None,
+                    'dichiarazione_mancata_consip_informatica': None,
+                    'dichiarazione_valore_affidamento': None,
+                    'dichiarazione_motivo_deroga_principio_rotazione': None,
+                    'importo_massimo': None,
+                    'quantita': None,
+                    'numero_CIG': None,
+                    'numero_COAN': None,
+                    'voce_piano_dei_conti': None,
+                    'voce_costo_COAN': None,
+                    'codice_CPV': None,
+                    'piattaforma_scelta': None,
+                    'riferimento_PAD': None,
+                    'codice_ateco_OE': None,
+                    'codice_ateco_OE_sec': None,
+                    'codice_ateco_OE_dich': None,
+                    'dichiarazione_individuazione_OE': None,
+                    'indirizzo_OE_scelta': None,
+                    'legale_rap_OE_scelta': None,
+                    'sede_OE_scelta': None,
+                    'piva_OE_scelta': None,
+                    'codice_CNEL': None,
+                    'estratti_CNEL': None,
+                    'data_nascita_richiedente': None,
+                    'luogo_nascita_richiedente': None,
+                    'CF_richiedente': None,
+                    'sede_richiedente': None,
+                    'dichiarazioni_comunicazione_incarichi_richiedente': None,
+                    'dichiarazioni_partecipazione_associazioni_organizzazioni_richiedente': None,
+                    'qualifica_richiedente': None,
+                    'nome_cognome_RUP': None,
+                    'data_nascita_RUP': None,
+                    'luogo_nascita_RUP': None,
+                    'CF_RUP': None,
+                    'sede_RUP': None,
+                    'mail_contatto_RUP': None,
+                    'nome_cognome_direttore': None,
+                    'data_nascita_direttore': None,
+                    'luogo_nascita_direttore': None,
+                    'CF_direttore': None,
+                    'sede_direttore': None,
+                    'mail_contatto_direttore': None,
+                    'nome_cognome_RSS': None,
+                    'data_nascita_RSS': None,
+                    'luogo_nascita_RSS': None,
+                    'CF_RSS': None,
+                    'sede_RSS': None,
+                    'mail_contatto_RSS': None,
+                    'ulteriori_riferimenti_normativi_attuativi_operativi': None,
+                    'url_gara': None,
+                    'protocollo_RDA': None,
+                    'protocollo_richiesta_url': None,
+                    'protocollo_nomina_RUP': None,
+                    'protocollo_conflittoint_richiedente': None,
+                    'protocollo_conflittoint_RUP': None,
+                    'protocollo_conflittoint_direttore': None,
+                    'protocollo_allegato2_CIG': None,
+                    'protocollo_istruttoria_RUP': None,
+                    'protocollo_DAC': None,
+                    'protocollo_ordine': None
                 }
                 
                 # Process column C with names from column E, starting from row 2
@@ -498,32 +566,213 @@ class ExcelReaderWindow(QMainWindow):
         
         # Document fields (common fields for both tabs)
         self.doc_fields = {
-            'numero_CUP': QLineEdit(),
+            # Date
+            'data_oggi': QLineEdit(),
+            'data_rda': QLineEdit(),
+            'data_scadenza': QLineEdit(),
+            
+            # Informazioni generali
             'servizio_fornitura': QLineEdit(),
-            'prestazione_servizio_fornitura': QLineEdit(),
-            'nome_cognome_richiedente': QLineEdit(),
-            'mail_contatto_richiedente': QLineEdit(),
-            'acronimo_progetto': QLineEdit(),
+            'descrizione_servizio_fornitura': QLineEdit(),
+            'breve_descrizione_caratteristiche_prestazioni_acquisizione_bene_servizio': QLineEdit(),
+            'breve_descrizione_motivazione_acquisizione_bene_servizio': QLineEdit(),
             'oggetto_fornitura_servizio': QLineEdit(),
             'oggetto_esteso_fornitura_servizio': QLineEdit(),
-            'nome_ditta': QLineEdit(),
-            'indirizzo_ditta': QLineEdit(),
-            'cap_ditta': QLineEdit(),
-            'pec_ditta': QLineEdit()
+            
+            # Clausole e dichiarazioni
+            'clausola_cam': QLineEdit(),
+            'clausola_servizi_fornitura': QLineEdit(),
+            'dichiarazione_deroga_MEPA': QLineEdit(),
+            'dichiarazione_mancata_consip_informatica': QLineEdit(),
+            'dichiarazione_valore_affidamento': QLineEdit(),
+            'dichiarazione_motivo_deroga_principio_rotazione': QLineEdit(),
+            
+            # Valori economici
+            'importo_massimo': QLineEdit(),
+            'quantita': QLineEdit(),
+            'importo_oneri_sicurezza': QLineEdit(),
+            'importo_oneri_personale': QLineEdit(),
+            
+            # Codici e numeri
+            'acronimo_progetto': QLineEdit(),
+            'numero_CUP': QLineEdit(),
+            'numero_CIG': QLineEdit(),
+            'numero_COAN': QLineEdit(),
+            'voce_piano_dei_conti': QLineEdit(),
+            'voce_costo_COAN': QLineEdit(),
+            'codice_CPV': QLineEdit(),
+            'codice_ateco_OE': QLineEdit(),
+            'codice_ateco_OE_sec': QLineEdit(),
+            'codice_ateco_OE_dich': QLineEdit(),
+            'codice_CNEL': QLineEdit(),
+            'estratti_CNEL': QLineEdit(),
+            
+            # Informazioni OE
+            'piattaforma_scelta': QLineEdit(),
+            'riferimento_PAD': QLineEdit(),
+            'dichiarazione_individuazione_OE': QLineEdit(),
+            'indirizzo_OE_scelta': QLineEdit(),
+            'legale_rap_OE_scelta': QLineEdit(),
+            'sede_OE_scelta': QLineEdit(),
+            'piva_OE_scelta': QLineEdit(),
+            
+            # Richiedente
+            'nome_cognome_richiedente': QLineEdit(),
+            'data_nascita_richiedente': QLineEdit(),
+            'luogo_nascita_richiedente': QLineEdit(),
+            'CF_richiedente': QLineEdit(),
+            'sede_richiedente': QLineEdit(),
+            'firma_richiedente': QLineEdit(),
+            'img_documento_richiedente': QLineEdit(),
+            'dichiarazioni_comunicazione_incarichi_richiedente': QLineEdit(),
+            'dichiarazioni_partecipazione_associazioni_organizzazioni_richiedente': QLineEdit(),
+            'mail_contatto_richiedente': QLineEdit(),
+            'qualifica_richiedente': QLineEdit(),
+            
+            # RUP
+            'nome_cognome_RUP': QLineEdit(),
+            'data_nascita_RUP': QLineEdit(),
+            'luogo_nascita_RUP': QLineEdit(),
+            'CF_RUP': QLineEdit(),
+            'sede_RUP': QLineEdit(),
+            'firma_RUP': QLineEdit(),
+            'img_documento_RUP': QLineEdit(),
+            'dichiarazioni_comunicazione_incarichi_RUP': QLineEdit(),
+            'dichiarazioni_partecipazione_associazioni_organizzazioni_RUP': QLineEdit(),
+            'mail_contatto_RUP': QLineEdit(),
+            
+            # Direttore
+            'nome_cognome_direttore': QLineEdit(),
+            'data_nascita_direttore': QLineEdit(),
+            'luogo_nascita_direttore': QLineEdit(),
+            'CF_direttore': QLineEdit(),
+            'sede_direttore': QLineEdit(),
+            'firma_direttore': QLineEdit(),
+            'img_documento_direttore': QLineEdit(),
+            'dichiarazioni_comunicazione_incarichi_direttore': QLineEdit(),
+            'dichiarazioni_partecipazione_associazioni_organizzazioni_direttore': QLineEdit(),
+            'mail_contatto_direttore': QLineEdit(),
+            
+            # RSS
+            'nome_cognome_RSS': QLineEdit(),
+            'data_nascita_RSS': QLineEdit(),
+            'luogo_nascita_RSS': QLineEdit(),
+            'CF_RSS': QLineEdit(),
+            'sede_RSS': QLineEdit(),
+            'firma_RSS': QLineEdit(),
+            'img_documento_RSS': QLineEdit(),
+            'dichiarazioni_comunicazione_incarichi_RSS': QLineEdit(),
+            'dichiarazioni_partecipazione_associazioni_organizzazioni_RSS': QLineEdit(),
+            'mail_contatto_RSS': QLineEdit(),
+            
+            # Protocolli e riferimenti
+            'ulteriori_riferimenti_normativi_attuativi_operativi': QLineEdit(),
+            'url_gara': QLineEdit(),
+            'protocollo_RDA': QLineEdit(),
+            'protocollo_richiesta_url': QLineEdit(),
+            'protocollo_nomina_RUP': QLineEdit(),
+            'protocollo_conflittoint_richiedente': QLineEdit(),
+            'protocollo_conflittoint_RUP': QLineEdit(),
+            'protocollo_conflittoint_direttore': QLineEdit(),
+            'protocollo_allegato2_CIG': QLineEdit(),
+            'protocollo_istruttoria_RUP': QLineEdit(),
+            'protocollo_DAC': QLineEdit(),
+            'protocollo_ordine': QLineEdit()
         }
         
         # Add only relevant fields based on sheet type
         if sheet_type == 'dati_generali_procedura':
-            fields_to_show = [ 
-                'servizio_fornitura', 
-                'acronimo_progetto',
-                'numero_CUP',
-                'oggetto_fornitura_servizio',
-                'oggetto_esteso_fornitura_servizio',                                
-                'nome_cognome_richiedente', 
-                'mail_contatto_richiedente'
+            # Organizza i campi in gruppi logici
+            groups = [
+                ("Informazioni Generali", [
+                    'data_oggi', 'data_rda', 'data_scadenza',
+                    'servizio_fornitura', 'descrizione_servizio_fornitura',
+                    'breve_descrizione_caratteristiche_prestazioni_acquisizione_bene_servizio',
+                    'breve_descrizione_motivazione_acquisizione_bene_servizio',
+                    'oggetto_fornitura_servizio', 'oggetto_esteso_fornitura_servizio'
+                ]),
+                
+                ("Clausole e Dichiarazioni", [
+                    'clausola_cam', 'clausola_servizi_fornitura',
+                    'dichiarazione_deroga_MEPA', 'dichiarazione_mancata_consip_informatica',
+                    'dichiarazione_valore_affidamento', 'dichiarazione_motivo_deroga_principio_rotazione'
+                ]),
+                
+                ("Valori Economici", [
+                    'importo_massimo', 'quantita',
+                    'importo_oneri_sicurezza', 'importo_oneri_personale'
+                ]),
+                
+                ("Codici e Numeri", [
+                    'acronimo_progetto', 'numero_CUP', 'numero_CIG',
+                    'numero_COAN', 'voce_piano_dei_conti', 'voce_costo_COAN',
+                    'codice_CPV', 'codice_ateco_OE', 'codice_ateco_OE_sec',
+                    'codice_ateco_OE_dich', 'codice_CNEL', 'estratti_CNEL'
+                ]),
+                
+                ("Informazioni Operatore Economico", [
+                    'piattaforma_scelta', 'riferimento_PAD',
+                    'dichiarazione_individuazione_OE', 'indirizzo_OE_scelta',
+                    'legale_rap_OE_scelta', 'sede_OE_scelta', 'piva_OE_scelta'
+                ]),
+                
+                ("Richiedente", [
+                    'nome_cognome_richiedente', 'data_nascita_richiedente',
+                    'luogo_nascita_richiedente', 'CF_richiedente', 'sede_richiedente',
+                    'dichiarazioni_comunicazione_incarichi_richiedente',
+                    'dichiarazioni_partecipazione_associazioni_organizzazioni_richiedente',
+                    'mail_contatto_richiedente', 'qualifica_richiedente'
+                ]),
+                
+                ("RUP", [
+                    'nome_cognome_RUP', 'data_nascita_RUP',
+                    'luogo_nascita_RUP', 'CF_RUP', 'sede_RUP',
+                    'dichiarazioni_comunicazione_incarichi_RUP',
+                    'dichiarazioni_partecipazione_associazioni_organizzazioni_RUP',
+                    'mail_contatto_RUP'
+                ]),
+                
+                ("Direttore", [
+                    'nome_cognome_direttore', 'data_nascita_direttore',
+                    'luogo_nascita_direttore', 'CF_direttore', 'sede_direttore',
+                    'dichiarazioni_comunicazione_incarichi_direttore',
+                    'dichiarazioni_partecipazione_associazioni_organizzazioni_direttore',
+                    'mail_contatto_direttore'
+                ]),
+                
+                ("RSS", [
+                    'nome_cognome_RSS', 'data_nascita_RSS',
+                    'luogo_nascita_RSS', 'CF_RSS', 'sede_RSS',
+                    'dichiarazioni_comunicazione_incarichi_RSS',
+                    'dichiarazioni_partecipazione_associazioni_organizzazioni_RSS',
+                    'mail_contatto_RSS'
+                ]),
+                
+                ("Protocolli e Riferimenti", [
+                    'ulteriori_riferimenti_normativi_attuativi_operativi',
+                    'url_gara', 'protocollo_RDA', 'protocollo_richiesta_url',
+                    'protocollo_nomina_RUP', 'protocollo_conflittoint_richiedente',
+                    'protocollo_conflittoint_RUP', 'protocollo_conflittoint_direttore',
+                    'protocollo_allegato2_CIG', 'protocollo_istruttoria_RUP',
+                    'protocollo_DAC', 'protocollo_ordine'
+                ])
             ]
+            
+            # Aggiungi i gruppi al layout
+            for group_name, fields in groups:
+                group_box = QGroupBox(group_name)
+                group_layout = QFormLayout()
+                
+                for field_name in fields:
+                    label = field_name.replace('_', ' ').title() + ":"
+                    self.doc_fields[field_name].setPlaceholderText(f"Inserisci {label.lower()}")
+                    group_layout.addRow(label, self.doc_fields[field_name])
+                
+                group_box.setLayout(group_layout)
+                template_layout.addRow(group_box)
+                
         else:
+            # Fields for generazioni_offerte tab
             fields_to_show = [ 
                 'servizio_fornitura', 
                 'acronimo_progetto',
@@ -533,11 +782,11 @@ class ExcelReaderWindow(QMainWindow):
                 'nome_cognome_richiedente', 
                 'mail_contatto_richiedente'
             ]
-        
-        for field_name in fields_to_show:
-            label = field_name.replace('_', ' ').title() + ":"
-            self.doc_fields[field_name].setPlaceholderText(f"Inserisci {label.lower()}")
-            template_layout.addRow(label, self.doc_fields[field_name])
+            
+            for field_name in fields_to_show:
+                label = field_name.replace('_', ' ').title() + ":"
+                self.doc_fields[field_name].setPlaceholderText(f"Inserisci {label.lower()}")
+                template_layout.addRow(label, self.doc_fields[field_name])
         
         template_group.setLayout(template_layout)
         
@@ -606,20 +855,13 @@ class ExcelReaderWindow(QMainWindow):
             
             # Prepare base context (dati_generali + form fields)
             context = {
-                'numero_CUP': self.doc_fields['numero_CUP'].text(),
-                'servizio_fornitura': self.doc_fields['servizio_fornitura'].text(),
-                'prestazione_servizio_fornitura': self.doc_fields['prestazione_servizio_fornitura'].text(),
-                'nome_cognome_richiedente': self.doc_fields['nome_cognome_richiedente'].text(),
-                'mail_contatto_richiedente': self.doc_fields['mail_contatto_richiedente'].text(),
-                'acronimo_progetto': self.doc_fields['acronimo_progetto'].text(),
-                'oggetto_fornitura_servizio': self.doc_fields['oggetto_fornitura_servizio'].text(),
-                'oggetto_esteso_fornitura_servizio': self.doc_fields['oggetto_esteso_fornitura_servizio'].text(),
-                'nome_ditta': self.doc_fields['nome_ditta'].text(),
-                'indirizzo_ditta': self.doc_fields['indirizzo_ditta'].text(),
-                'cap_ditta': self.doc_fields['cap_ditta'].text(),
-                'pec_ditta': self.doc_fields['pec_ditta'].text(),
+                'data_oggi': datetime.now().strftime('%d/%m/%Y'),
                 'data_corrente': datetime.now().strftime('%d/%m/%Y')
             }
+            
+            # Add all form fields to context
+            for field_name, widget in self.doc_fields.items():
+                context[field_name] = widget.text()
             
             # Add data from dati_generali_procedura sheet
             for i in range(self.dati_generali_list.count()):
@@ -648,7 +890,7 @@ class ExcelReaderWindow(QMainWindow):
                             cognome = row_context['nome_cognome_richiedente'].split()[-1] if row_context['nome_cognome_richiedente'] else 'documento'
                             progetto = row_context['acronimo_progetto']
                             template_name = os.path.splitext(os.path.basename(template_path))[0]
-                            output_filename = f"Richiesta_Offerta_{cognome}_{progetto}_ditta_{item_data['row_idx']}.docx"
+                            output_filename = f"Richiesta_Offerta_{cognome}_{progetto}_OE_{item_data['row_idx']}.docx"
                             output_path = os.path.join(output_dir, output_filename)
                             
                             # Render and save document
