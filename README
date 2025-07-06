@@ -28,13 +28,13 @@ Nello zip ci sono due directory statiche raggiungibile da programma
 ### dati_generali_procedura : per il riempimento guidato dei fogli della procedura 
 ### generazioni due per la generazione delle richieste di offerte 
 ### filtrare le variabili da due fogli excel che è un template excel presente. 
+### aggiungere l'elenco completo delle variabili presenti nel secondo foglio file variabili_testo.xlsx nel file template.xlsx sono 99!!
+### fare l'autoriempimento delle variabili nel tab di generazione dati procedura
 
 
 ### to do:
 
-- aggiungere l'elenco completo delle variabili presenti nel secondo foglio file variabili_testo.xlsx nel file template.xlsx sono 99!!
-- fare l'autoriempimento delle variabili nel tab di generazione dati procedura
-- bottone per creare la directory di generazione documenti procedura??
+
 - fare il compilato e provarlo 
 
 
