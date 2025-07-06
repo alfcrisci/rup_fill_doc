@@ -3,12 +3,13 @@ import sys
 from datetime import datetime
 from docxtpl import DocxTemplate
 import openpyxl
+from openpyxl.utils import get_column_letter
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QPushButton, QFileDialog, QTextEdit, QMessageBox,
     QListWidget, QListWidgetItem, QGroupBox, QTabWidget,
-    QFormLayout, QSplitter, QFrame
+    QFormLayout, QSplitter, QFrame, QScrollArea
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QIcon
@@ -22,7 +23,10 @@ class ExcelReaderWindow(QMainWindow):
         
         # Set application icon (replace with your icon if needed)
         self.setWindowIcon(QIcon(":/images/app_icon.png"))
-        
+        # Variabili per le cartelle predefinite
+        self.cartella_assoluta = os.path.expanduser("~")  # Cartella home utente come default
+        self.cartella_template = os.path.expanduser("~")  # Cartella home utente come default
+      
         # Central widget with tabs
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -92,6 +96,7 @@ class ExcelReaderWindow(QMainWindow):
         header_layout.addWidget(credits_frame)
         
         # Add header to main layout
+        
         main_layout.addWidget(header_frame)
         
         # Separator line
@@ -121,9 +126,8 @@ class ExcelReaderWindow(QMainWindow):
         # Excel Reader Tab
         self.setup_excel_tab()
         
-        # Document Generator Tabs
-        self.setup_document_tab('dati_generali_procedura', "Genera Documenti Dati Generali")
-        self.setup_document_tab('generazioni_offerte', "Genera Documenti Offerte")
+        # Unified Document Generator Tab
+        self.setup_unified_document_tab()
         
         # Current data storage
         self.current_file = None
@@ -237,12 +241,6 @@ class ExcelReaderWindow(QMainWindow):
             }
         """)
         
-        # Add widgets to Excel tab
-        excel_layout.addWidget(file_group)
-        excel_layout.addWidget(self.splitter)
-        excel_layout.addWidget(QLabel("Output:"))
-        excel_layout.addWidget(self.results_display)
-        
         # Scan button
         scan_button = QPushButton("Leggi Fogli Excel")
         scan_button.setIcon(QIcon.fromTheme("document-open"))
@@ -258,7 +256,13 @@ class ExcelReaderWindow(QMainWindow):
             }
         """)
         scan_button.clicked.connect(self.read_excel_sheets)
+        
+        # Add widgets to Excel tab
+        excel_layout.addWidget(file_group)
         excel_layout.addWidget(scan_button)
+        excel_layout.addWidget(self.splitter)
+        excel_layout.addWidget(QLabel("Output:"))
+        excel_layout.addWidget(self.results_display)
         
         self.tabs.addTab(excel_tab, "Excel Reader")
 
@@ -305,13 +309,40 @@ class ExcelReaderWindow(QMainWindow):
         file_name, _ = QFileDialog.getOpenFileName(
             self, 
             "Apri file Excel", 
-            "", 
+            self.cartella_assoluta,  # Usa la cartella predefinita
             "Excel Files (*.xlsx *.xls)"
         )
         if file_name:
             self.file_path.setText(file_name)
             self.current_file = file_name
+            self.cartella_assoluta = os.path.dirname(file_name)  # Aggiorna la cartella con l'ultima usata
             self.results_display.append(f"File selezionato: {file_name}")
+
+    def format_excel_date(self, value):
+        """Format Excel date value to dd/mm/YYYY string"""
+        if value is None:
+            return ""
+        
+        if isinstance(value, datetime):
+            return value.strftime("%d/%m/%Y")
+        elif isinstance(value, str):
+            try:
+                # Try to parse string as date
+                dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+                return dt.strftime("%d/%m/%Y")
+            except ValueError:
+                try:
+                    dt = datetime.strptime(value, "%d/%m/%Y")
+                    return dt.strftime("%d/%m/%Y")
+                except ValueError:
+                    return value
+        else:
+            try:
+                # Try to convert Excel numeric date
+                dt = datetime.fromordinal(datetime(1900, 1, 1).toordinal() + int(value) - 2)
+                return datetime.fromordinal(dt).strftime("%d/%m/%Y")
+            except (ValueError, TypeError):
+                return str(value)
 
     def read_excel_sheets(self):
         if not self.current_file:
@@ -328,6 +359,17 @@ class ExcelReaderWindow(QMainWindow):
                 'dati_generali_procedura': None,
                 'generazioni_offerte': None
             }
+            
+            # List of date fields that need special formatting
+            date_fields = [
+                'data_nascita_richiedente',
+                'data_nascita_RUP',
+                'data_nascita_direttore',
+                'data_nascita_RSS',
+                'data_rda',
+                'data_scadenza',
+                'data_oggi'
+            ]
             
             # Read dati_generali_procedura sheet
             if 'dati_generali_procedura' in workbook.sheetnames:
@@ -352,7 +394,7 @@ class ExcelReaderWindow(QMainWindow):
                     'clausola_cam': None,
                     'clausola_servizi_fornitura': None,
                     'dichiarazione_deroga_MEPA': None,
-                    'dichiarazione_mancata_consip_informatica': None,
+                    'dichiarazione_mancada_consip_informatica': None,
                     'dichiarazione_valore_affidamento': None,
                     'dichiarazione_motivo_deroga_principio_rotazione': None,
                     'importo_massimo': None,
@@ -423,19 +465,27 @@ class ExcelReaderWindow(QMainWindow):
                         continue
                         
                     name = str(cell_e.value)
-                    item_text = f"{name}: {cell_c.value}"
+                    value = cell_c.value
                     
-                    # Controlla se questo valore corrisponde a uno dei nostri campi
+                    # Format date fields
+                    for date_field in date_fields:
+                        if date_field.lower() in name.lower():
+                            value = self.format_excel_date(value)
+                            break
+                    
+                    item_text = f"{name}: {value}"
+                    
+                    # Check if this value matches one of our fields
                     for field_name in field_mapping.keys():
                         if field_name.lower() in name.lower():
-                            field_mapping[field_name] = str(cell_c.value) if cell_c.value else ""
+                            field_mapping[field_name] = str(value) if value else ""
                     
                     item = QListWidgetItem(item_text)
                     item.setData(Qt.ItemDataRole.UserRole, {
                         'type': 'value',
                         'coord': cell_c.coordinate,
                         'name': name,
-                        'value': cell_c.value
+                        'value': value
                     })
                     self.dati_generali_list.addItem(item)
                 
@@ -456,30 +506,36 @@ class ExcelReaderWindow(QMainWindow):
                         })
                         self.dati_generali_list.addItem(item)
                 
-                # Riempimento automatico dei campi QLineEdit
+                # Auto-fill QLineEdit fields
                 for field_name, value in field_mapping.items():
                     if value is not None and field_name in self.doc_fields:
                         self.doc_fields[field_name].setText(value)
             
-            # Read generazioni_offerte sheet come tabella (prima riga = nomi colonne)
+            # Read generazioni_offerte sheet as table (first row = column names)
             if 'generazioni_offerte' in workbook.sheetnames:
                 sheet = workbook['generazioni_offerte']
                 self.sheet_data['generazioni_offerte'] = sheet
                 
-                # Leggi la prima riga come nomi delle colonne
+                # Read first row as column names
                 headers = []
                 for cell in sheet[1]:
                     header_name = str(cell.value) if cell.value else f"col_{cell.column_letter}"
                     headers.append(header_name)
                 
-                # Leggi i dati per ogni riga successiva
+                # Read data for each subsequent row
                 for row_idx, row in enumerate(sheet.iter_rows(min_row=2), start=2):
                     row_data = {}
                     for col_idx, cell in enumerate(row, start=1):
                         if col_idx - 1 < len(headers):
-                            row_data[headers[col_idx - 1]] = cell.value
+                            value = cell.value
+                            # Format date fields
+                            for date_field in date_fields:
+                                if date_field.lower() in headers[col_idx - 1].lower():
+                                    value = self.format_excel_date(value)
+                                    break
+                            row_data[headers[col_idx - 1]] = value
                     
-                    # Aggiungi alla lista come voce unica per la riga
+                    # Add to list as single item for the row
                     item_text = f" {', '.join(f' {v}' for k, v in row_data.items() if v)}"
                     item = QListWidgetItem(item_text)
                     item.setData(Qt.ItemDataRole.UserRole, {
@@ -502,7 +558,7 @@ class ExcelReaderWindow(QMainWindow):
         
         try:
             if sheet_name == 'generazioni_offerte' and item_data['type'] == 'row':
-                # Mostra tutti i dati della riga
+                # Show all row data
                 row_data = item_data['data']
                 details = "\n".join([f"• {k}: {v} ({type(v).__name__})" for k, v in row_data.items()])
                 self.results_display.append(
@@ -510,7 +566,7 @@ class ExcelReaderWindow(QMainWindow):
                     f"{details}\n"
                     f"----------------------------")
             else:
-                # Mostra dettagli per dati_generali_procedura o celle singole
+                # Show details for dati_generali_procedura or single cells
                 sheet = self.sheet_data[sheet_name]
                 
                 if item_data['type'] == 'value':
@@ -534,13 +590,24 @@ class ExcelReaderWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Errore", f"Errore nella lettura della cella:\n{str(e)}")
 
-    def setup_document_tab(self, sheet_type, tab_name):
-        """Setup a Document Generator tab for specific sheet type"""
+    def setup_unified_document_tab(self):
+        """Setup a unified Document Generator tab with scrollable content"""
         doc_tab = QWidget()
         doc_layout = QVBoxLayout()
         doc_layout.setContentsMargins(10, 10, 10, 10)
         doc_layout.setSpacing(10)
         doc_tab.setLayout(doc_layout)
+        
+        # Create a scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        
+        # Create a container widget for the scroll area
+        container = QWidget()
+        container_layout = QVBoxLayout()
+        container_layout.setContentsMargins(5, 5, 5, 5)
+        container.setLayout(container_layout)
         
         # Template selection
         template_group = QGroupBox("Configurazione Documento")
@@ -564,7 +631,69 @@ class ExcelReaderWindow(QMainWindow):
         template_layout.addRow("Cartella Output:", self.output_dir)
         template_layout.addRow(output_btn)
         
-        # Document fields (common fields for both tabs)
+        template_group.setLayout(template_layout)
+        container_layout.addWidget(template_group)
+        
+        # Excel file section
+        # excel_group = QGroupBox("File Excel")
+        # excel_group.setStyleSheet("QGroupBox { font-weight: bold; }")
+        # excel_layout = QHBoxLayout()
+        
+        # self.excel_path = QLineEdit()
+        # self.excel_path.setPlaceholderText("Seleziona file Excel...")
+        # excel_btn = QPushButton("Sfoglia...")
+        # excel_btn.setIcon(QIcon.fromTheme("document-open"))
+        # excel_btn.clicked.connect(self.browse_excel_file)
+        
+        # excel_layout.addWidget(self.excel_path)
+        # excel_layout.addWidget(excel_btn)
+        # excel_group.setLayout(excel_layout)
+        
+        # container_layout.addWidget(excel_group)
+        
+        # Generate buttons
+        buttons_frame = QFrame()
+        buttons_layout = QHBoxLayout()
+        buttons_layout.setContentsMargins(0, 10, 0, 10)
+        buttons_frame.setLayout(buttons_layout)
+        
+        # Button for dati_generali_procedura
+        generate_dati_btn = QPushButton("Genera Documenti Dati Generali")
+        generate_dati_btn.setIcon(QIcon.fromTheme("document-save-as"))
+        generate_dati_btn.setStyleSheet("""
+            QPushButton {
+                padding: 8px;
+                background-color: #2980b9;
+                color: white;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #3498db;
+            }
+        """)
+        generate_dati_btn.clicked.connect(lambda: self.generate_document('dati_generali_procedura'))
+        
+        # Button for generazioni_offerte
+        generate_offerte_btn = QPushButton("Genera Documenti Offerte")
+        generate_offerte_btn.setIcon(QIcon.fromTheme("document-save-as"))
+        generate_offerte_btn.setStyleSheet("""
+            QPushButton {
+                padding: 8px;
+                background-color: #27ae60;
+                color: white;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #2ecc71;
+            }
+        """)
+        generate_offerte_btn.clicked.connect(lambda: self.generate_document('generazioni_offerte'))
+        
+        buttons_layout.addWidget(generate_dati_btn)
+        buttons_layout.addWidget(generate_offerte_btn)
+        container_layout.addWidget(buttons_frame)
+        
+        # Document fields
         self.doc_fields = {
             # Date
             'data_oggi': QLineEdit(),
@@ -578,14 +707,6 @@ class ExcelReaderWindow(QMainWindow):
             'breve_descrizione_motivazione_acquisizione_bene_servizio': QLineEdit(),
             'oggetto_fornitura_servizio': QLineEdit(),
             'oggetto_esteso_fornitura_servizio': QLineEdit(),
-            
-            # Clausole e dichiarazioni
-            'clausola_cam': QLineEdit(),
-            'clausola_servizi_fornitura': QLineEdit(),
-            'dichiarazione_deroga_MEPA': QLineEdit(),
-            'dichiarazione_mancata_consip_informatica': QLineEdit(),
-            'dichiarazione_valore_affidamento': QLineEdit(),
-            'dichiarazione_motivo_deroga_principio_rotazione': QLineEdit(),
             
             # Valori economici
             'importo_massimo': QLineEdit(),
@@ -616,6 +737,14 @@ class ExcelReaderWindow(QMainWindow):
             'sede_OE_scelta': QLineEdit(),
             'piva_OE_scelta': QLineEdit(),
             
+            # Clausole e dichiarazioni
+            'clausola_cam': QLineEdit(),
+            'clausola_servizi_fornitura': QLineEdit(),
+            'dichiarazione_deroga_MEPA': QLineEdit(),
+            'dichiarazione_mancata_consip_informatica': QLineEdit(),
+            'dichiarazione_valore_affidamento': QLineEdit(),
+            'dichiarazione_motivo_deroga_principio_rotazione': QLineEdit(),
+       
             # Richiedente
             'nome_cognome_richiedente': QLineEdit(),
             'data_nascita_richiedente': QLineEdit(),
@@ -680,100 +809,82 @@ class ExcelReaderWindow(QMainWindow):
             'protocollo_ordine': QLineEdit()
         }
         
-        # Add only relevant fields based on sheet type
-        if sheet_type == 'dati_generali_procedura':
-            # Organizza i campi in gruppi logici
-            groups = [
-                ("Informazioni Generali", [
-                    'data_oggi', 'data_rda', 'data_scadenza',
-                    'servizio_fornitura', 'descrizione_servizio_fornitura',
-                    'breve_descrizione_caratteristiche_prestazioni_acquisizione_bene_servizio',
-                    'breve_descrizione_motivazione_acquisizione_bene_servizio',
-                    'oggetto_fornitura_servizio', 'oggetto_esteso_fornitura_servizio'
-                ]),
-                
-                ("Clausole e Dichiarazioni", [
-                    'clausola_cam', 'clausola_servizi_fornitura',
-                    'dichiarazione_deroga_MEPA', 'dichiarazione_mancata_consip_informatica',
-                    'dichiarazione_valore_affidamento', 'dichiarazione_motivo_deroga_principio_rotazione'
-                ]),
-                
-                ("Valori Economici", [
-                    'importo_massimo', 'quantita',
-                    'importo_oneri_sicurezza', 'importo_oneri_personale'
-                ]),
-                
-                ("Codici e Numeri", [
-                    'acronimo_progetto', 'numero_CUP', 'numero_CIG',
-                    'numero_COAN', 'voce_piano_dei_conti', 'voce_costo_COAN',
-                    'codice_CPV', 'codice_ateco_OE', 'codice_ateco_OE_sec',
-                    'codice_ateco_OE_dich', 'codice_CNEL', 'estratti_CNEL'
-                ]),
-                
-                ("Informazioni Operatore Economico", [
-                    'piattaforma_scelta', 'riferimento_PAD',
-                    'dichiarazione_individuazione_OE', 'indirizzo_OE_scelta',
-                    'legale_rap_OE_scelta', 'sede_OE_scelta', 'piva_OE_scelta'
-                ]),
-                
-                ("Richiedente", [
-                    'nome_cognome_richiedente', 'data_nascita_richiedente',
-                    'luogo_nascita_richiedente', 'CF_richiedente', 'sede_richiedente',
-                    'dichiarazioni_comunicazione_incarichi_richiedente',
-                    'dichiarazioni_partecipazione_associazioni_organizzazioni_richiedente',
-                    'mail_contatto_richiedente', 'qualifica_richiedente'
-                ]),
-                
-                ("RUP", [
-                    'nome_cognome_RUP', 'data_nascita_RUP',
-                    'luogo_nascita_RUP', 'CF_RUP', 'sede_RUP',
-                    'dichiarazioni_comunicazione_incarichi_RUP',
-                    'dichiarazioni_partecipazione_associazioni_organizzazioni_RUP',
-                    'mail_contatto_RUP'
-                ]),
-                
-                ("Direttore", [
-                    'nome_cognome_direttore', 'data_nascita_direttore',
-                    'luogo_nascita_direttore', 'CF_direttore', 'sede_direttore',
-                    'dichiarazioni_comunicazione_incarichi_direttore',
-                    'dichiarazioni_partecipazione_associazioni_organizzazioni_direttore',
-                    'mail_contatto_direttore'
-                ]),
-                
-                ("RSS", [
-                    'nome_cognome_RSS', 'data_nascita_RSS',
-                    'luogo_nascita_RSS', 'CF_RSS', 'sede_RSS',
-                    'dichiarazioni_comunicazione_incarichi_RSS',
-                    'dichiarazioni_partecipazione_associazioni_organizzazioni_RSS',
-                    'mail_contatto_RSS'
-                ]),
-                
-                ("Protocolli e Riferimenti", [
-                    'ulteriori_riferimenti_normativi_attuativi_operativi',
-                    'url_gara', 'protocollo_RDA', 'protocollo_richiesta_url',
-                    'protocollo_nomina_RUP', 'protocollo_conflittoint_richiedente',
-                    'protocollo_conflittoint_RUP', 'protocollo_conflittoint_direttore',
-                    'protocollo_allegato2_CIG', 'protocollo_istruttoria_RUP',
-                    'protocollo_DAC', 'protocollo_ordine'
-                ])
-            ]
+        # Organizza i campi in gruppi logici
+        groups = [
+            ("Informazioni Generali", [
+                'data_oggi', 'data_rda', 'data_scadenza',
+                'servizio_fornitura', 'descrizione_servizio_fornitura',
+                'breve_descrizione_caratteristiche_prestazioni_acquisizione_bene_servizio',
+                'breve_descrizione_motivazione_acquisizione_bene_servizio',
+                'oggetto_fornitura_servizio', 'oggetto_esteso_fornitura_servizio'
+            ]),
             
-            # Aggiungi i gruppi al layout
-            for group_name, fields in groups:
-                group_box = QGroupBox(group_name)
-                group_layout = QFormLayout()
-                
-                for field_name in fields:
-                    label = field_name.replace('_', ' ').title() + ":"
-                    self.doc_fields[field_name].setPlaceholderText(f"Inserisci {label.lower()}")
-                    group_layout.addRow(label, self.doc_fields[field_name])
-                
-                group_box.setLayout(group_layout)
-                template_layout.addRow(group_box)
-                
-        else:
-            # Fields for generazioni_offerte tab
-            fields_to_show = [ 
+            ("Clausole e Dichiarazioni", [
+                'clausola_cam', 'clausola_servizi_fornitura',
+                'dichiarazione_deroga_MEPA', 'dichiarazione_mancata_consip_informatica',
+                'dichiarazione_valore_affidamento', 'dichiarazione_motivo_deroga_principio_rotazione'
+            ]),
+            
+            ("Valori Economici", [
+                'importo_massimo', 'quantita',
+                'importo_oneri_sicurezza', 'importo_oneri_personale'
+            ]),
+            
+            ("Codici e Numeri", [
+                'acronimo_progetto', 'numero_CUP', 'numero_CIG',
+                'numero_COAN', 'voce_piano_dei_conti', 'voce_costo_COAN',
+                'codice_CPV', 'codice_ateco_OE', 'codice_ateco_OE_sec',
+                'codice_ateco_OE_dich', 'codice_CNEL', 'estratti_CNEL'
+            ]),
+            
+            ("Informazioni Operatore Economico", [
+                'piattaforma_scelta', 'riferimento_PAD',
+                'dichiarazione_individuazione_OE', 'indirizzo_OE_scelta',
+                'legale_rap_OE_scelta', 'sede_OE_scelta', 'piva_OE_scelta'
+            ]),
+            
+            ("Richiedente", [
+                'nome_cognome_richiedente', 'data_nascita_richiedente',
+                'luogo_nascita_richiedente', 'CF_richiedente', 'sede_richiedente',
+                'dichiarazioni_comunicazione_incarichi_richiedente',
+                'dichiarazioni_partecipazione_associazioni_organizzazioni_richiedente',
+                'mail_contatto_richiedente', 'qualifica_richiedente'
+            ]),
+            
+            ("RUP", [
+                'nome_cognome_RUP', 'data_nascita_RUP',
+                'luogo_nascita_RUP', 'CF_RUP', 'sede_RUP',
+                'dichiarazioni_comunicazione_incarichi_RUP',
+                'dichiarazioni_partecipazione_associazioni_organizzazioni_RUP',
+                'mail_contatto_RUP'
+            ]),
+            
+            ("Direttore", [
+                'nome_cognome_direttore', 'data_nascita_direttore',
+                'luogo_nascita_direttore', 'CF_direttore', 'sede_direttore',
+                'dichiarazioni_comunicazione_incarichi_direttore',
+                'dichiarazioni_partecipazione_associazioni_organizzazioni_direttore',
+                'mail_contatto_direttore'
+            ]),
+            
+            ("RSS", [
+                'nome_cognome_RSS', 'data_nascita_RSS',
+                'luogo_nascita_RSS', 'CF_RSS', 'sede_RSS',
+                'dichiarazioni_comunicazione_incarichi_RSS',
+                'dichiarazioni_partecipazione_associazioni_organizzazioni_RSS',
+                'mail_contatto_RSS'
+            ]),
+            
+            ("Protocolli e Riferimenti", [
+                'ulteriori_riferimenti_normativi_attuativi_operativi',
+                'url_gara', 'protocollo_RDA', 'protocollo_richiesta_url',
+                'protocollo_nomina_RUP', 'protocollo_conflittoint_richiedente',
+                'protocollo_conflittoint_RUP', 'protocollo_conflittoint_direttore',
+                'protocollo_allegato2_CIG', 'protocollo_istruttoria_RUP',
+                'protocollo_DAC', 'protocollo_ordine'
+            ]),
+            
+            ("Generazione Offerte - Campi Principali", [
                 'servizio_fornitura', 
                 'acronimo_progetto',
                 'numero_CUP',
@@ -781,49 +892,41 @@ class ExcelReaderWindow(QMainWindow):
                 'oggetto_esteso_fornitura_servizio',                                
                 'nome_cognome_richiedente', 
                 'mail_contatto_richiedente'
-            ]
+            ])
+        ]
+        
+        # Aggiungi i gruppi al layout
+        for group_name, fields in groups:
+            group_box = QGroupBox(group_name)
+            group_layout = QFormLayout()
             
-            for field_name in fields_to_show:
+            for field_name in fields:
                 label = field_name.replace('_', ' ').title() + ":"
                 self.doc_fields[field_name].setPlaceholderText(f"Inserisci {label.lower()}")
-                template_layout.addRow(label, self.doc_fields[field_name])
+                group_layout.addRow(label, self.doc_fields[field_name])
+            
+            group_box.setLayout(group_layout)
+            container_layout.addWidget(group_box)
         
-        template_group.setLayout(template_layout)
+        # Set the container as the scroll area's widget
+        scroll_area.setWidget(container)
         
-        # Generate button
-        generate_btn = QPushButton(f"Genera Documento {tab_name.split()[-1]}")
-        generate_btn.setIcon(QIcon.fromTheme("document-save-as"))
-        generate_btn.setStyleSheet("""
-            QPushButton {
-                padding: 8px;
-                background-color: #2980b9;
-                color: white;
-                border-radius: 10px;
-            }
-            QPushButton:hover {
-                background-color: #3498db;
-            }
-        """)
-        generate_btn.clicked.connect(lambda: self.generate_document(sheet_type))
+        # Add the scroll area to the main tab layout
+        doc_layout.addWidget(scroll_area)
         
-        # Add widgets to Document tab
-        doc_layout.addWidget(template_group)
-        doc_layout.addWidget(generate_btn)
-        doc_layout.addStretch()
-        
-        self.tabs.addTab(doc_tab, tab_name)
+        self.tabs.addTab(doc_tab, "Genera Documenti")
 
     def browse_template_file(self):
         """Open a file dialog to select multiple Word templates"""
         file_names, _ = QFileDialog.getOpenFileNames(
             self, 
             "Seleziona template Word", 
-            "", 
+            self.cartella_template,
             "Word Documents (*.docx)"
         )
         if file_names:
             self.template_path.setText("; ".join(file_names))
-
+            self.cartella_template = os.path.dirname(file_names[0])  # Aggiorna la cartella con l'ultima usata
     def browse_output_dir(self):
         dir_name = QFileDialog.getExistingDirectory(
             self, "Seleziona cartella di output"
@@ -833,6 +936,9 @@ class ExcelReaderWindow(QMainWindow):
 
     def generate_document(self, source_sheet):
         """Generate Word documents from multiple templates using data from specified sheet"""
+        # Get current date in the desired format
+        current_date = datetime.now().strftime('%d/%m/%Y')
+        
         template_paths = [path.strip() for path in self.template_path.text().split(";") if path.strip()]
         output_dir = self.output_dir.text()
         
@@ -855,8 +961,8 @@ class ExcelReaderWindow(QMainWindow):
             
             # Prepare base context (dati_generali + form fields)
             context = {
-                'data_oggi': datetime.now().strftime('%d/%m/%Y'),
-                'data_corrente': datetime.now().strftime('%d/%m/%Y')
+                'data_oggi': current_date,
+                'data_corrente': current_date
             }
             
             # Add all form fields to context
@@ -886,11 +992,11 @@ class ExcelReaderWindow(QMainWindow):
                     # Generate documents for each template
                     for template_path in template_paths:
                         try:
-                            # Generate filename
+                            # Generate filename with current date
                             cognome = row_context['nome_cognome_richiedente'].split()[-1] if row_context['nome_cognome_richiedente'] else 'documento'
                             progetto = row_context['acronimo_progetto']
                             template_name = os.path.splitext(os.path.basename(template_path))[0]
-                            output_filename = f"Richiesta_Offerta_{cognome}_{progetto}_OE_{item_data['row_idx']}.docx"
+                            output_filename = f"Richiesta_Offerta_{cognome}_{progetto}_OE_{item_data['row_idx']}_{current_date.replace('/', '-')}.docx"
                             output_path = os.path.join(output_dir, output_filename)
                             
                             # Render and save document
@@ -908,7 +1014,7 @@ class ExcelReaderWindow(QMainWindow):
                             continue
                 
                 if generated_files:
-                    success_message = "Documenti generati con successo:\n\n" + "\n".join(generated_files)
+                    success_message = f"Documenti generati con successo il {current_date}:\n\n" + "\n".join(generated_files)
                     QMessageBox.information(self, "Successo", success_message)
                 else:
                     QMessageBox.warning(self, "Attenzione", "Nessun documento è stato generato.")
@@ -918,11 +1024,11 @@ class ExcelReaderWindow(QMainWindow):
                 generated_files = []
                 for template_path in template_paths:
                     try:
-                        # Generate filename
+                        # Generate filename with current date
                         cognome = context['nome_cognome_richiedente'].split()[-1] if context['nome_cognome_richiedente'] else 'documento'
                         progetto = context['acronimo_progetto']
                         template_name = os.path.splitext(os.path.basename(template_path))[0]
-                        output_filename = f"{template_name}_{cognome}_{progetto}.docx"
+                        output_filename = f"{template_name}_{cognome}_{progetto}_{current_date.replace('/', '-')}.docx"
                         output_path = os.path.join(output_dir, output_filename)
                         
                         # Render and save document
@@ -940,7 +1046,7 @@ class ExcelReaderWindow(QMainWindow):
                         continue
                 
                 if generated_files:
-                    success_message = "Documenti generati con successo:\n\n" + "\n".join(generated_files)
+                    success_message = f"Documenti generati con successo il {current_date}:\n\n" + "\n".join(generated_files)
                     QMessageBox.information(self, "Successo", success_message)
                 else:
                     QMessageBox.warning(self, "Attenzione", "Nessun documento è stato generato.")
@@ -949,7 +1055,7 @@ class ExcelReaderWindow(QMainWindow):
             QMessageBox.critical(
                 self, 
                 "Errore", 
-                f"Errore durante la generazione dei documenti:\n{str(e)}"
+                f"Errore durante la generazione dei documenti il {current_date}:\n{str(e)}"
             )
 
 if __name__ == "__main__":
