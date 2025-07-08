@@ -368,6 +368,7 @@ class ExcelReaderWindow(QMainWindow):
                 'data_nascita_RSS',
                 'data_rda',
                 'data_scadenza',
+                'data_scadenza_offerta',
                 'data_oggi'
             ]
             
@@ -700,8 +701,10 @@ class ExcelReaderWindow(QMainWindow):
             'data_oggi': QLineEdit(),
             'data_rda': QLineEdit(),
             'data_scadenza': QLineEdit(),
+            'data_scadenza_offerta': QLineEdit(),
             
             # Informazioni generali
+            
             'servizio_fornitura': QLineEdit(),
             'descrizione_servizio_fornitura': QLineEdit(),
             'breve_descrizione_caratteristiche_prestazioni_acquisizione_bene_servizio': QLineEdit(),
@@ -825,11 +828,10 @@ class ExcelReaderWindow(QMainWindow):
         # Organizza i campi in gruppi logici
         groups = [
             ("Informazioni Generali", [
-                'data_oggi', 'data_rda', 'data_scadenza',
-                'servizio_fornitura', 'descrizione_servizio_fornitura',
+                'data_oggi', 'data_rda', 'data_scadenza','data_scadenza_offerta',
+                'descrizione_servizio_fornitura',
                 'breve_descrizione_caratteristiche_prestazioni_acquisizione_bene_servizio',
-                'breve_descrizione_motivazione_acquisizione_bene_servizio',
-                'oggetto_fornitura_servizio', 'oggetto_esteso_fornitura_servizio'
+                'breve_descrizione_motivazione_acquisizione_bene_servizio'
             ]),
             
             ("Clausole e Dichiarazioni", [
