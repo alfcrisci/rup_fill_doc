@@ -771,6 +771,17 @@ class ExcelReaderWindow(QMainWindow):
             'dichiarazioni_comunicazione_incarichi_RUP': QLineEdit(),
             'dichiarazioni_partecipazione_associazioni_organizzazioni_RUP': QLineEdit(),
             'mail_contatto_RUP': QLineEdit(),
+            # RUP
+            'nome_cognome_supportoRUP': QLineEdit(),
+            'data_nascita_supportoRUP': QLineEdit(),
+            'luogo_nascita_supportoRUP': QLineEdit(),
+            'CF_supportoRUP': QLineEdit(),
+            'sede_supportoRUP': QLineEdit(),
+            'firma_supportoRUP': QLineEdit(),
+            'img_documento_supportoRUP': QLineEdit(),
+            'dichiarazioni_comunicazione_incarichi_supportoRUP': QLineEdit(),
+            'dichiarazioni_partecipazione_associazioni_organizzazioni_supportoRUP': QLineEdit(),
+            'mail_contatto_supportoRUP': QLineEdit(),
             
             # Direttore
             'nome_cognome_direttore': QLineEdit(),
@@ -860,7 +871,13 @@ class ExcelReaderWindow(QMainWindow):
                 'dichiarazioni_partecipazione_associazioni_organizzazioni_RUP',
                 'mail_contatto_RUP'
             ]),
-            
+            ("supportoRUP", [
+                'nome_cognome_supportoRUP', 'data_nascita_supportoRUP',
+                'luogo_nascita_supportoRUP', 'CF_supportoRUP', 'sede_supportoRUP',
+                'dichiarazioni_comunicazione_incarichi_supportoRUP',
+                'dichiarazioni_partecipazione_associazioni_organizzazioni_supportoRUP',
+                'mail_contatto_supportoRUP'
+            ]),
             ("Direttore", [
                 'nome_cognome_direttore', 'data_nascita_direttore',
                 'luogo_nascita_direttore', 'CF_direttore', 'sede_direttore',
