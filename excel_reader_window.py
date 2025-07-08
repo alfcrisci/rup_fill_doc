@@ -405,6 +405,7 @@ class ExcelReaderWindow(QMainWindow):
                     'voce_costo_COAN': None,
                     'codice_CPV': None,
                     'piattaforma_scelta': None,
+                    'bando_MEPA':None,
                     'riferimento_PAD': None,
                     'codice_ateco_OE': None,
                     'codice_ateco_OE_sec': None,
