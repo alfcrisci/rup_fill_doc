@@ -731,6 +731,7 @@ class ExcelReaderWindow(QMainWindow):
             
             # Informazioni OE
             'piattaforma_scelta': QLineEdit(),
+            'bando_MEPA': QLineEdit(),
             'riferimento_PAD': QLineEdit(),
             'dichiarazione_individuazione_OE': QLineEdit(),
             'indirizzo_OE_scelta': QLineEdit(),
@@ -839,7 +840,7 @@ class ExcelReaderWindow(QMainWindow):
             ]),
             
             ("Informazioni Operatore Economico", [
-                'piattaforma_scelta', 'riferimento_PAD',
+                'piattaforma_scelta', 'bando_MEPA','riferimento_PAD',
                 'dichiarazione_individuazione_OE', 'indirizzo_OE_scelta',
                 'legale_rap_OE_scelta', 'sede_OE_scelta', 'piva_OE_scelta'
             ]),
