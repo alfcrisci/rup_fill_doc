@@ -390,14 +390,17 @@ class ExcelReaderWindow(QMainWindow):
                     'data_rda': None,
                     'data_scadenza': None,
                     'descrizione_servizio_fornitura': None,
-                    'breve_descrizione_caratteristiche_prestazioni_acquisizione_bene_servizio': None,
-                    'breve_descrizione_motivazione_acquisizione_bene_servizio': None,
+                    'descrizione_caratteristiche_prestazioni': None,
+                    'descrizione_motivazione_acquisizione': None,
                     'clausola_cam': None,
                     'clausola_servizi_fornitura': None,
                     'dichiarazione_deroga_MEPA': None,
-                    'dichiarazione_mancada_consip_informatica': None,
+                    'dichiarazione_mancata_consip_informatica': None,
                     'dichiarazione_valore_affidamento': None,
                     'dichiarazione_motivo_deroga_principio_rotazione': None,
+                    'dichiarazione_individuazione_OE': None,
+                    'dichiarazione_individuazione_preventiva_OE': None,
+                    'dichiarazione_non_imponibile': None,
                     'importo_massimo': None,
                     'quantita': None,
                     'numero_CIG': None,
@@ -412,6 +415,7 @@ class ExcelReaderWindow(QMainWindow):
                     'codice_ateco_OE_sec': None,
                     'codice_ateco_OE_dich': None,
                     'dichiarazione_individuazione_OE': None,
+                    'nome_OE_scelta': None,
                     'indirizzo_OE_scelta': None,
                     'legale_rap_OE_scelta': None,
                     'sede_OE_scelta': None,
@@ -707,8 +711,8 @@ class ExcelReaderWindow(QMainWindow):
             
             'servizio_fornitura': QLineEdit(),
             'descrizione_servizio_fornitura': QLineEdit(),
-            'breve_descrizione_caratteristiche_prestazioni_acquisizione_bene_servizio': QLineEdit(),
-            'breve_descrizione_motivazione_acquisizione_bene_servizio': QLineEdit(),
+            'descrizione_caratteristiche_prestazioni': QLineEdit(),
+            'descrizione_motivazione_acquisizione': QLineEdit(),
             'oggetto_fornitura_servizio': QLineEdit(),
             'oggetto_esteso_fornitura_servizio': QLineEdit(),
             
@@ -737,6 +741,7 @@ class ExcelReaderWindow(QMainWindow):
             'bando_MEPA': QLineEdit(),
             'riferimento_PAD': QLineEdit(),
             'dichiarazione_individuazione_OE': QLineEdit(),
+            'nome_OE_scelta': QLineEdit(),
             'indirizzo_OE_scelta': QLineEdit(),
             'legale_rap_OE_scelta': QLineEdit(),
             'sede_OE_scelta': QLineEdit(),
@@ -749,7 +754,9 @@ class ExcelReaderWindow(QMainWindow):
             'dichiarazione_mancata_consip_informatica': QLineEdit(),
             'dichiarazione_valore_affidamento': QLineEdit(),
             'dichiarazione_motivo_deroga_principio_rotazione': QLineEdit(),
-       
+            'dichiarazione_individuazione_OE': QLineEdit(),
+            'dichiarazione_individuazione_preventiva_OE': QLineEdit(),
+             'dichiarazione_non_imponibile': QLineEdit(),
             # Richiedente
             'nome_cognome_richiedente': QLineEdit(),
             'data_nascita_richiedente': QLineEdit(),
@@ -830,14 +837,20 @@ class ExcelReaderWindow(QMainWindow):
             ("Informazioni Generali", [
                 'data_oggi', 'data_rda', 'data_scadenza','data_scadenza_offerta',
                 'descrizione_servizio_fornitura',
-                'breve_descrizione_caratteristiche_prestazioni_acquisizione_bene_servizio',
-                'breve_descrizione_motivazione_acquisizione_bene_servizio'
+                'descrizione_caratteristiche_prestazioni',
+                'descrizione_motivazione_acquisizione'
             ]),
             
             ("Clausole e Dichiarazioni", [
                 'clausola_cam', 'clausola_servizi_fornitura',
                 'dichiarazione_deroga_MEPA', 'dichiarazione_mancata_consip_informatica',
-                'dichiarazione_valore_affidamento', 'dichiarazione_motivo_deroga_principio_rotazione'
+                'dichiarazione_valore_affidamento', 'dichiarazione_motivo_deroga_principio_rotazione',
+                'dichiarazione_individuazione_OE',
+                'dichiarazione_individuazione_preventiva_OE',
+                'dichiarazione_non_imponibile'
+
+         
+                
             ]),
             
             ("Valori Economici", [
@@ -854,7 +867,7 @@ class ExcelReaderWindow(QMainWindow):
             
             ("Informazioni Operatore Economico", [
                 'piattaforma_scelta', 'bando_MEPA','riferimento_PAD',
-                'dichiarazione_individuazione_OE', 'indirizzo_OE_scelta',
+                'dichiarazione_individuazione_OE','nome_OE_scelta', 'indirizzo_OE_scelta',
                 'legale_rap_OE_scelta', 'sede_OE_scelta', 'piva_OE_scelta'
             ]),
             
@@ -968,7 +981,7 @@ class ExcelReaderWindow(QMainWindow):
             return
         
         if not output_dir:
-            output_dir = "A_preventivo"
+            output_dir = "doc_generati"
             self.output_dir.setText(output_dir)
         
         if source_sheet not in self.sheet_data or not self.sheet_data[source_sheet]:
